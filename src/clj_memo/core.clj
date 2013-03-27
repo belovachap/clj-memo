@@ -2,38 +2,44 @@
   (:require [clj-time.core :as clj-time]
             [clj-time.local :refer :all]))
 
-(def ^:dynamic *card-deck* [])
+(comment
+  (def ^:dynamic *card-deck* []))
 
-(defn create-card
-  "Create a new card."
-  [question answer]
-  (atom {:question question 
-         :answer answer
-         :easy-factor 2.5
-         :last-review-date nil
-         :next-review-date nil
-         :high-quality-reviews 0}))
+(comment
+  (defn create-card
+    "Create a new card."
+    [question answer]
+    (atom {:question question 
+           :answer answer
+           :easy-factor 2.5
+           :last-review-date nil
+           :next-review-date nil
+           :high-quality-reviews 0})))
 
-(defn next-easy-factor [last-easy-factor recall]
-  (+ last-easy-factor (- 0.1 (* (- 5 recall) (+ 0.08 (* (- 5 recall) 0.02))))))
+(comment
+  (defn next-easy-factor [last-easy-factor recall]
+    (+ last-easy-factor (- 0.1 (* (- 5 recall) (+ 0.08 (* (- 5 recall) 0.02)))))))
 
-(defn review-card! [card recall]
-  (swap! card update-in [:easy-factor] next-easy-factor recall))
+(comment
+  (defn next-review-interval
+    "Determine how many days to review the card within."
+    [card]
+    (let [{:keys [easy-factor schedule]} @card]
+      (cond 
+       (= (count schedule) 0) 1
+       (= (count schedule) 1) 6
+       :else (int (* (:review-within-days (last schedule)) easy-factor))))))
 
-(defn next-review-interval
-  "Determine how many days to review the card within."
-  [card]
-  (let [{:keys [easy-factor schedule]} @card]
-    (cond 
-     (= (count schedule) 0) 1
-     (= (count schedule) 1) 6
-     :else (int (* (:review-within-days (last schedule)) easy-factor)))))
+(comment
+  (defn update-card [card recall]
+    (let [card @card]
+      (update-in card [:easy-factor] next-easy-factor recall)
+      (update-in card [:schedule] conj {:from (local-now) 
+                                        :review-within-days (next-review-interval)}))))
 
-(defn review-card [card recall]
-  (let [card @card]
-    (update-in card [:easy-factor] next-easy-factor recall)
-    (update-in card [:schedule] conj {:from (local-now) 
-                                      :review-within-days (next-review-interval)})))
+(comment
+  (defn update-card! [card recall]
+    (swap! card update-card recall)))
 
 (comment
   (defn main
