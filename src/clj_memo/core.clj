@@ -35,12 +35,6 @@
     (update-in card [:schedule] conj {:from (local-now) 
                                       :review-within-days (next-review-interval)})))
 
-(defn review-card-by-date
-  "Determine the date by which the card should be reviewed."
-  [card]
-  (clj-time/plus (:from (last (:schedule @card))) (clj-time/days (:review-within-days (last (:schedule @card))))))
-
-
 (comment
   (defn main
     "Run the training program"
@@ -57,17 +51,16 @@
    (let [recall (prompt-card card)]
      (update-card card recall))))
 
-
-(comment
-  (defn cards-to-review
-    "Return the collection of cards that need to be reviewed today"
-    [deck date]
-    (filter (partial date review-card?) deck)))
-
 (defn review-card? [date card]
+  "Determine if the card should be reviewed with respect to the date."
   (let [{:keys [next-review-date]} @card]
     (if (nil? next-review-date) true
-        (clj-time/before? next-review-date date))))
+        ((comp not clj-time/after?) next-review-date date))))
+
+(defn cards-to-review
+  "Return the collection of cards that need to be reviewed today"
+  [date deck]
+  (filter (partial review-card? date) deck))
 
 (defn prompt-card
   "Display card at prompt and return recall."

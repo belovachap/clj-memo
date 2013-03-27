@@ -1,59 +1,43 @@
 (ns clj-memo.core-spec
   (:require [speclj.core :refer :all]
-            [clj-time.core :as clj-time]
+            [clj-time.core :refer [date-midnight plus minus days]]
             [clj-memo.core :refer :all]))
 
-(defn add-to-schedule [card review-window]
-  (swap! card update-in [:schedule] conj review-window))
+(describe "review-card?"
 
-(describe "card"
-  (it "should have a question, answer, schedule and easy factor"
-    (let [new-card @(create-card "question" "answer")]
-      (should= "question" (:question new-card))
-      (should= "answer" (:answer new-card))
-      (should= 2.5 (:easy-factor new-card))
-      (should= [] (:schedule new-card))))
-  
-  (it "should know when it's due for review"
-    (let [card (create-card "q" "a")]
-      (add-to-schedule card {:from (clj-time/date-time 2000 1 1) :review-within-days 1})
-      (should= (clj-time/date-time 2000 1 2) (review-card-by-date card))))
+  (it "should be true if the card has never been reviewed"
+    (let [card (atom {:next-review-date nil})]
+      (should (review-card? (date-midnight 200 1 1) card))))
 
-  (it "should update when reviewed"
-    (let [card (atom {:easy-factor 2.5 :schedule []})
-          reviewed-card (review-card! card 3)]
-      (should= 2.36 (:easy-factor reviewed-card)))
-    )
-  )
+  (it "should be true if the card is overdue for review"
+    (let [card (atom {:next-review-date (date-midnight 1999 12 1)})]
+      (should (review-card? (date-midnight 2000 1 1) card))))
 
-(describe "Training program"
-  )
+  (it "should be true if the next review date is today"
+    (let [card (atom {:next-review-date (date-midnight 2000 1 1)})]
+      (should (review-card? (date-midnight 2000 1 1) card))))
 
-(describe "SuperMemo2 card scheduling"
-  (it "should schedule a new card to be reviewed within a day"
-    (let [new-card (create-card "question" "answer")]
-      (should= 1 (next-review-interval new-card))))
+  (it "should be false if the next review date is in the future"
+    (let [card (atom {:next-review-date (date-midnight 2000 1 2)})]
+      (should-not (review-card? (date-midnight 2000 1 1) card)))))
 
-  (it "should schedule the second review within six days"
-    (let [card (create-card "question" "answer")]
-      (add-to-schedule card {:from (clj-time/date-time 2000 1 1) :review-within-days 1})
-      (should= 6 (next-review-interval card))))
+(defn random-date-on-or-before [date]
+  (minus date (days (rand-int 10))))
 
-  (it "should use the SM2 update equation from iteration 3 on"
-    (let [card (create-card "question" "answer")]
-      (add-to-schedule card {:from (clj-time/date-time 2000 1 1) :review-within-days 1})
-      (add-to-schedule card {:from (clj-time/date-time 2000 1 1) :review-within-days 6})
-      (should= 15 (next-review-interval card)))))
+(defn random-date-after [date]
+  (plus date (days (inc (rand-int 10)))))
 
-(describe "Card deck operations"
-  (it "should be able to get the next scheduled card"
-    (let 
-        [soon-card (create-card  "q" "a")
-         later-card (create-card "q" "a")
-         deck [soon-card later-card]]
-      (add-to-schedule soon-card {:from (clj-time/date-time 2000 1 1) :review-within-days 1})
-      (add-to-schedule later-card {:from (clj-time/date-time 2000 1 1) :review-within-days 6})
+(defn card-with-next-review-date [date date-fn]
+  (atom {:next-review-date (date-fn date)}))
 
-      (should= soon-card (next-card-to-review deck)))))
+(describe "cards-to-review"
+
+  (it 
+    "should return a sequence of cards that need to be reviewed"
+    (let [date (date-midnight 2000 1 1)
+          review-cards (repeatedly 2 (partial card-with-next-review-date date random-date-on-or-before))
+          not-review-cards (repeatedly 2 (partial card-with-next-review-date date random-date-after))
+          all-cards (concat review-cards not-review-cards)]
+      (should== review-cards (cards-to-review date all-cards)))))
 
 (run-specs)
