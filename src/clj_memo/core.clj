@@ -1,6 +1,9 @@
+;; Clojure implementation of SuperMemo http://www.supermemo.com/english/ol/sm2.htm
 (ns clj-memo.core
-  (:require [clj-time.core :as clj-time]
-            [clj-time.local :refer :all]))
+  (:require 
+   [clojure.contrib.math :refer [ceil]]
+   [clj-time.core :as clj-time]
+   [clj-time.local :refer :all]))
 
 (comment
   (def ^:dynamic *card-deck* []))
@@ -14,28 +17,39 @@
            :easy-factor 2.5
            :last-review-date nil
            :next-review-date nil
+           :last-recall nil
            :high-quality-reviews 0})))
 
-(comment
-  (defn next-easy-factor [last-easy-factor recall]
-    (+ last-easy-factor (- 0.1 (* (- 5 recall) (+ 0.08 (* (- 5 recall) 0.02)))))))
+(defn update-easy-factor [easy-factor recall]
+  (if (< recall 3) easy-factor
+      (+ easy-factor (- 0.1 (* (- 5 recall) (+ 0.08 (* (- 5 recall) 0.02)))))))
+
+(defn update-high-quality-reviews
+  [high-quality-reviews recall]
+  (if (< recall 3) 0 (inc high-quality-reviews)))
+
+(defn update-review-interval
+  "Determine how many days to review the card within."
+  [review-interval high-quality-reviews easy-factor]
+  (case high-quality-reviews
+    0 1
+    1 6
+    (int (ceil (* review-interval easy-factor)))))
 
 (comment
-  (defn next-review-interval
-    "Determine how many days to review the card within."
-    [card]
-    (let [{:keys [easy-factor schedule]} @card]
-      (cond 
-       (= (count schedule) 0) 1
-       (= (count schedule) 1) 6
-       :else (int (* (:review-within-days (last schedule)) easy-factor))))))
-
-(comment
-  (defn update-card [card recall]
-    (let [card @card]
-      (update-in card [:easy-factor] next-easy-factor recall)
-      (update-in card [:schedule] conj {:from (local-now) 
-                                        :review-within-days (next-review-interval)}))))
+  (defn update-card [card recall review-date]
+    (let [{:keys easy-factor last-review-date next-review-date last-recall high-quality-reviews} card
+          new-last-recall recall
+          new-last-review-date review-date
+          new-high-quality-reviews (update-high-quality-reviews high-quality-reviews recall)
+          new-easy-factor (update-easy-factor easy-factor recall)
+          new-next-review-date (update-next-review-date new-high-quality-reviews new-easy-factor last-review-date next-review-date)]
+      (assoc card 
+        :easy-factor new-easy-factor
+        :last-review-date new-last-review-date
+        :next-review-date new-next-review-date
+        :last-recall new-last-recall
+        :high-quality-reviews new-high-quality-reviews))))
 
 (comment
   (defn update-card! [card recall]

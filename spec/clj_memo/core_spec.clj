@@ -3,6 +3,48 @@
             [clj-time.core :refer [date-midnight plus minus days]]
             [clj-memo.core :refer :all]))
 
+
+(describe "update-high-quality-reviews"
+
+  (it "should return 0 if the recall is less than 3"
+    (let [high-quality-reviews 5
+          recall 2]
+      (should= 0 (update-high-quality-reviews high-quality-reviews recall))))
+  
+  (it "should increment the current number of high quality reviews if recall is 3 or better"
+    (let [high-quality-reviews 5
+          recall 3]
+      (should= 6 (update-high-quality-reviews high-quality-reviews recall)))))
+
+
+(describe "update-easy-factor"
+
+  (it "should recompute the easy factor if recall is 3 or better"
+    (let [easy-factor 2.5
+          recall 3]
+      (should= 2.36 (update-easy-factor easy-factor recall))))
+
+  (it "should not change the easy factor if the recall is less than 3"
+    (let [easy-factor 2.5
+          recall 2]
+      (should= 2.5 (update-easy-factor easy-factor recall)))))
+
+(describe "update-review-interval"
+  
+  (it "should return 1 if high quality reviews is 0"
+    (should= 1 (update-review-interval 1 0 2.5)))
+
+  (it "should return 6 if high quality reviews is 1"
+    (should= 6 (update-review-interval 1 1 2.5)))
+
+  (it "should return SM2 computation for more than 2 high quality reviews"
+    (should= 3 (update-review-interval 1 2 2.5))))
+
+(describe "update-next-review-date"
+
+  (it "should return a date x days in the future using update-review-interval"))
+
+
 (describe "review-card?"
 
   (it "should be true if the card has never been reviewed"
