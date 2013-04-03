@@ -34,11 +34,14 @@
   (it "should return 1 if high quality reviews is 0"
     (should= 1 (update-review-interval 1 0 2.5)))
 
-  (it "should return 6 if high quality reviews is 1"
-    (should= 6 (update-review-interval 1 1 2.5)))
+  (it "should return 1 if high quality reviews is 1"
+    (should= 1 (update-review-interval 1 1 2.5)))
+
+  (it "should return 6 if high quality reviews is 2"
+    (should= 6 (update-review-interval 1 2 2.5)))
 
   (it "should return SM2 computation for more than 2 high quality reviews"
-    (should= 3 (update-review-interval 1 2 2.5))))
+    (should= 3 (update-review-interval 1 3 2.5))))
 
 (describe "last-review-interval"
   
@@ -86,5 +89,15 @@
           not-review-cards (repeatedly 2 (partial card-with-next-review-date date random-date-after))
           all-cards (concat review-cards not-review-cards)]
       (should== review-cards (cards-to-review date all-cards)))))
+
+(describe "update-card"
+  (it "should perform all the update calculations correctly for a new card"
+    (let [new-card (create-card "question" "answer")
+          updated-card (update-card @new-card 4 (date-midnight 2000 1 1))]
+      (should= 2.5 (:easy-factor updated-card))
+      (should= (date-midnight 2000 1 1) (:last-review-date updated-card))
+      (should= (date-midnight 2000 1 2) (:next-review-date updated-card))
+      (should= 4 (:last-recall updated-card))
+      (should= 1 (:high-quality-reviews updated-card)))))
 
 (run-specs)

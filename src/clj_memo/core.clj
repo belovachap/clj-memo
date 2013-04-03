@@ -5,20 +5,18 @@
    [clj-time.core :as clj-time]
    [clj-time.local :refer :all]))
 
-(comment
-  (def ^:dynamic *card-deck* []))
+(def card-deck (atom []))
 
-(comment
-  (defn create-card
-    "Create a new card."
-    [question answer]
-    (atom {:question question 
-           :answer answer
-           :easy-factor 2.5
-           :last-review-date nil
-           :next-review-date nil
-           :last-recall nil
-           :high-quality-reviews 0})))
+(defn create-card
+  "Create a new card."
+  [question answer]
+  (atom {:question question 
+         :answer answer
+         :easy-factor 2.5
+         :last-review-date nil
+         :next-review-date nil
+         :last-recall nil
+         :high-quality-reviews 0}))
 
 (defn update-easy-factor [easy-factor recall]
   (if (< recall 3) easy-factor
@@ -33,7 +31,8 @@
   [review-interval high-quality-reviews easy-factor]
   (case high-quality-reviews
     0 1
-    1 6
+    1 1
+    2 6
     (int (ceil (* review-interval easy-factor)))))
 
 (defn last-review-interval
@@ -41,42 +40,40 @@
   (if (nil? last-review-date) nil
       (clj-time/in-days (clj-time/interval last-review-date next-review-date))))
 
-(comment
-  (defn update-card [card recall review-date]
-    (let [{:keys easy-factor last-review-date next-review-date last-recall high-quality-reviews} card
-          new-last-recall recall
-          new-last-review-date review-date
-          new-high-quality-reviews (update-high-quality-reviews high-quality-reviews recall)
-          new-easy-factor (update-easy-factor easy-factor recall)
-          review-interval (last-review-interval last-review-date next-review-date)
-          new-review-interval (update-review-interval review-interval new-high-quality-reviews new-easy-factor)
-          new-next-review-date (clj-time/plus next-review-date (clj-time/days new-review-interval))]
-      (assoc card 
-        :easy-factor new-easy-factor
-        :last-review-date new-last-review-date
-        :next-review-date new-next-review-date
-        :last-recall new-last-recall
-        :high-quality-reviews new-high-quality-reviews))))
+(defn update-card [card recall review-date]
+  (let [{:keys [easy-factor last-review-date next-review-date last-recall high-quality-reviews]} card
+        new-last-recall recall
+        new-last-review-date review-date
+        new-high-quality-reviews (update-high-quality-reviews high-quality-reviews recall)
+        new-easy-factor (update-easy-factor easy-factor recall)
+        review-interval (last-review-interval last-review-date next-review-date)
+        new-review-interval (update-review-interval review-interval new-high-quality-reviews new-easy-factor)
+        new-next-review-date (clj-time/plus review-date (clj-time/days new-review-interval))]
+    (assoc card 
+      :easy-factor new-easy-factor
+      :last-review-date new-last-review-date
+      :next-review-date new-next-review-date
+      :last-recall new-last-recall
+      :high-quality-reviews new-high-quality-reviews)))
 
-(comment
-  (defn update-card! [card recall]
-    (swap! card update-card recall)))
+(defn update-card! [card recall review-date]
+  (swap! card update-card recall review-date))
 
-(comment
-  (defn main
-    "Run the training program"
-    []
-    ;; Get the cards that need to be reviewed today
-    ;; Show cards and calculate next review date
-    (doseq [card (cards-to-review (local-now))]
-      (review-card card))
-    ))
+(defn prompt-review-card
+  "Display card at prompt and return recall."
+  [card]
+  (let [{:keys [question answer]} @card]
+    (println question)
+    (println "Hit enter for answer...")
+    (read-line)
+    (println answer)
+    (println "How would you rate your recall:")
+    (read)))
 
-(comment
-  (review-card
-   [card]
-   (let [recall (prompt-card card)]
-     (update-card card recall))))
+(defn review-card
+ [card]
+ (let [recall (prompt-review-card card)]
+   (update-card! card recall (clj-time/today-at-midnight))))
 
 (defn review-card? [date card]
   "Determine if the card should be reviewed with respect to the date."
@@ -89,13 +86,14 @@
   [date deck]
   (filter (partial review-card? date) deck))
 
-(defn prompt-card
-  "Display card at prompt and return recall."
-  [card]
-  (let [{:keys [question answer]} @card]
-    (println question)
-    (println "Hit enter for answer...")
-    (read-line)
-    (println answer)
-    (println "How would you rate your recall:")
-    (read)))
+(defn add-card
+  [card-deck question answer]
+  (swap! card-deck conj (create-card question answer)))
+
+(defn main
+  "Run the training program"
+  [card-deck]
+  ;; Get the cards that need to be reviewed today
+  ;; Show cards and calculate next review date
+  (doseq [card (cards-to-review (local-now) card-deck)]
+    (review-card card)))
