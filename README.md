@@ -5,11 +5,14 @@ Flash card scheduling system.
 ## Usage
 
 `lein trampoline repl`
+
 `user=> (use 'clj-memo.core)`
+
 `user=> (add-card card-deck "Who invented Clojure?" "Rick Hickey")`
+
 `user=> (main @card-deck)`
 
-Rinse, lather, repeat!
+Lather, rinse, repeat!
 
 ## License
 
