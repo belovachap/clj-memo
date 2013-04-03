@@ -36,6 +36,11 @@
     1 6
     (int (ceil (* review-interval easy-factor)))))
 
+(defn last-review-interval
+  [last-review-date next-review-date]
+  (if (nil? last-review-date) nil
+      (clj-time/in-days (clj-time/interval last-review-date next-review-date))))
+
 (comment
   (defn update-card [card recall review-date]
     (let [{:keys easy-factor last-review-date next-review-date last-recall high-quality-reviews} card
@@ -43,7 +48,9 @@
           new-last-review-date review-date
           new-high-quality-reviews (update-high-quality-reviews high-quality-reviews recall)
           new-easy-factor (update-easy-factor easy-factor recall)
-          new-next-review-date (update-next-review-date new-high-quality-reviews new-easy-factor last-review-date next-review-date)]
+          review-interval (last-review-interval last-review-date next-review-date)
+          new-review-interval (update-review-interval review-interval new-high-quality-reviews new-easy-factor)
+          new-next-review-date (clj-time/plus next-review-date (clj-time/days new-review-interval))]
       (assoc card 
         :easy-factor new-easy-factor
         :last-review-date new-last-review-date

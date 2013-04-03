@@ -40,16 +40,21 @@
   (it "should return SM2 computation for more than 2 high quality reviews"
     (should= 3 (update-review-interval 1 2 2.5))))
 
-(describe "update-next-review-date"
+(describe "last-review-interval"
+  
+  (it "should return nil if last-review-date is nil"
+    (should= nil (last-review-interval nil nil)))
 
-  (it "should return a date x days in the future using update-review-interval"))
-
+  (it "should return the difference in days of two dates"
+    (let [date1 (date-midnight 2000 1 1)
+          date2 (date-midnight 2000 1 3)]
+      (should= 2 (last-review-interval date1 date2)))))
 
 (describe "review-card?"
 
   (it "should be true if the card has never been reviewed"
     (let [card (atom {:next-review-date nil})]
-      (should (review-card? (date-midnight 200 1 1) card))))
+      (should (review-card? (date-midnight 2000 1 1) card))))
 
   (it "should be true if the card is overdue for review"
     (let [card (atom {:next-review-date (date-midnight 1999 12 1)})]
