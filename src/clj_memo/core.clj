@@ -9,16 +9,16 @@
 
 (def card-deck (atom []))
 
+(defrecord Card [question answer])
+
 (defn create-card
   "Create a new card."
   [question answer]
-  (atom {:question question 
-         :answer answer
-         :easy-factor 2.5
-         :last-review-date nil
-         :next-review-date nil
-         :last-recall nil
-         :high-quality-reviews 0}))
+  (atom (Card. question answer {} {:easy-factor 2.5
+                                   :last-review-date nil
+                                   :next-review-date nil
+                                   :last-recall nil
+                                   :high-quality-reviews 0})))
 
 (defn update-easy-factor [easy-factor recall]
   (if (< recall 3) easy-factor
