@@ -1,6 +1,8 @@
 ;; Clojure implementation of SuperMemo http://www.supermemo.com/english/ol/sm2.htm
 (ns clj-memo.core
-  (:require 
+  (:require
+   [clojure.java.io :as io]
+   [clojure.string :refer [split-lines]]
    [clojure.contrib.math :refer [ceil]]
    [clj-time.core :as clj-time]
    [clj-time.local :refer :all]))
@@ -97,3 +99,18 @@
   ;; Show cards and calculate next review date
   (doseq [card (cards-to-review (local-now) card-deck)]
     (review-card card)))
+
+(defn file->card-deck [file-name]
+  "Read in a card deck from the provided file name."
+  (->> file-name
+       slurp
+       split-lines
+       (map (comp atom read-string))
+       vec
+       atom))
+
+(defn card-deck->file [card-deck file-name]
+  "Store a card deck into the provided file-name."
+  (io/delete-file file-name)
+  (doseq [card @card-deck]
+    (spit file-name (prn-str @card) :append true)))
