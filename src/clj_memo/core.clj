@@ -109,6 +109,6 @@
 
 (defn card-deck->file [card-deck file-name]
   "Store a card deck into the provided file-name."
-  (io/delete-file file-name)
+  (io/delete-file file-name :silently)
   (doseq [card @card-deck]
     (spit file-name (prn-str @card) :append true)))
