@@ -7,8 +7,6 @@
    [clj-time.core :as clj-time]
    [clj-time.local :refer :all]))
 
-(def card-deck (atom []))
-
 (defn create-card
   "Create a new card."
   [question answer]
